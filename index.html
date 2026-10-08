@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Évite les obstacles</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.game-container {
+    width: 95%;
+    max-width: 500px;
+    text-align: center;
+}
+
+h1 {
+    color: #38bdf8;
+    margin-bottom: 10px;
+    font-size: 30px;
+}
+
+.info {
+    display: flex;
+    justify-content: space-between;
+    background: #111827;
+    padding: 12px 18px;
+    border-radius: 12px 12px 0 0;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#game {
+    position: relative;
+    width: 100%;
+    height: 500px;
+    background:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+        #020617;
+    background-size: 40px 40px;
+    border: 3px solid #38bdf8;
+    border-top: none;
+    overflow: hidden;
+    border-radius: 0 0 12px 12px;
+}
+
+#player {
+    position: absolute;
+    width: 45px;
+    height: 45px;
+    background: #38bdf8;
+    border-radius: 10px;
+    bottom: 20px;
+    left: calc(50% - 22px);
+    box-shadow: 0 0 20px #38bdf8;
+}
+
+.obstacle {
+    position: absolute;
+    width: 45px;
+    height: 45px;
+    background: #ef4444;
+    border-radius: 8px;
+    box-shadow: 0 0 15px #ef4444;
+}
+
+button {
+    margin-top: 15px;
+    padding: 13px 30px;
+    border: none;
+    border-radius: 10px;
+    background: #22c55e;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #16a34a;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+    margin-top: 15px;
+}
+
+.control-btn {
+    width: 70px;
+    height: 55px;
+    margin: 0;
+    background: #334155;
+    font-size: 25px;
+    border: 2px solid #64748b;
+}
+
+.control-btn:active {
+    background: #475569;
+    transform: scale(0.95);
+}
+
+#message {
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.88);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+#message h2 {
+    color: #38bdf8;
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+#message p {
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.instructions {
+    margin-top: 15px;
+    color: #cbd5e1;
+    font-size: 14px;
+}
+
+@media (max-width: 450px) {
+    #game {
+        height: 450px;
+    }
+
+    h1 {
+        font-size: 25px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="game-container">
+
+    <h1>🎮 ÉVITE LES OBSTACLES</h1>
+
+    <div class="info">
+        <span>Score : <span id="score">0</span></span>
+        <span>Record : <span id="best">0</span></span>
+    </div>
+
+    <div id="game">
+
+        <div id="player"></div>
+
+        <div id="message">
+            <h2>Évite les obstacles !</h2>
+            <p>Déplace le joueur bleu et évite les blocs rouges.</p>
+            <button id="startBtn">▶ Jouer</button>
+        </div>
+
+    </div>
+
+    <div class="controls">
+        <button class="control-btn" id="leftBtn">⬅</button>
+        <button class="control-btn" id="rightBtn">➡</button>
+    </div>
+
+    <p class="instructions">
+        Utilise les boutons ou les touches ⬅️ ➡️ du clavier.
+    </p>
+
+</div>
+
+<script>
+
+const game = document.getElementById("game");
+const player = document.getElementById("player");
+const scoreText = document.getElementById("score");
+const bestText = document.getElementById("best");
+const message = document.getElementById("message");
+const startBtn = document.getElementById("startBtn");
+const leftBtn = document.getElementById("leftBtn");
+const rightBtn = document.getElementById("rightBtn");
+
+let playerX;
+let score = 0;
+let bestScore = localStorage.getItem("bestScore") || 0;
+let gameRunning = false;
+let obstacles = [];
+let gameLoop;
+let obstacleTimer;
+let speed = 4;
+
+bestText.textContent = bestScore;
+
+function startGame() {
+
+    gameRunning = true;
+    score = 0;
+    speed = 4;
+    obstacles = [];
+
+    scoreText.textContent = score;
+
+    message.classList.add("hidden");
+
+    playerX = game.clientWidth / 2 - 22;
+
+    player.style.left = playerX + "px";
+
+    document.querySelectorAll(".obstacle").forEach(o => o.remove());
+
+    clearInterval(obstacleTimer);
+    cancelAnimationFrame(gameLoop);
+
+    obstacleTimer = setInterval(createObstacle, 850);
+
+    gameLoop = requestAnimationFrame(updateGame);
+}
+
+function createObstacle() {
+
+    if (!gameRunning) return;
+
+    const obstacle = document.createElement("div");
+
+    obstacle.classList.add("obstacle");
+
+    const maxX = game.clientWidth - 45;
+
+    obstacle.style.left = Math.random() * maxX + "px";
+    obstacle.style.top = "-50px";
+
+    game.appendChild(obstacle);
+
+    obstacles.push({
+        element: obstacle,
+        y: -50
+    });
+}
+
+function updateGame() {
+
+    if (!gameRunning) return;
+
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+
+        const obstacle = obstacles[i];
+
+        obstacle.y += speed;
+
+        obstacle.element.style.top = obstacle.y + "px";
+
+        if (collision(player, obstacle.element)) {
+            endGame();
+            return;
+        }
+
+        if (obstacle.y > game.clientHeight) {
+
+            obstacle.element.remove();
+
+            obstacles.splice(i, 1);
+
+            score++;
+
+            scoreText.textContent = score;
+
+            if (score % 10 === 0) {
+                speed += 0.5;
+            }
+        }
+    }
+
+    gameLoop = requestAnimationFrame(updateGame);
+}
+
+function collision(a, b) {
+
+    const rect1 = a.getBoundingClientRect();
+    const rect2 = b.getBoundingClientRect();
+
+    return !(
+        rect1.right < rect2.left ||
+        rect1.left > rect2.right ||
+        rect1.bottom < rect2.top ||
+        rect1.top > rect2.bottom
+    );
+}
+
+function moveLeft() {
+
+    if (!gameRunning) return;
+
+    playerX -= 30;
+
+    if (playerX < 0) {
+        playerX = 0;
+    }
+
+    player.style.left = playerX + "px";
+}
+
+function moveRight() {
+
+    if (!gameRunning) return;
+
+    playerX += 30;
+
+    const maxX = game.clientWidth - player.offsetWidth;
+
+    if (playerX > maxX) {
+        playerX = maxX;
+    }
+
+    player.style.left = playerX + "px";
+}
+
+function endGame() {
+
+    gameRunning = false;
+
+    clearInterval(obstacleTimer);
+    cancelAnimationFrame(gameLoop);
+
+    if (score > bestScore) {
+
+        bestScore = score;
+
+        localStorage.setItem("bestScore", bestScore);
+
+        bestText.textContent = bestScore;
+    }
+
+    message.innerHTML = `
+        <h2>💥 GAME OVER</h2>
+        <p>Ton score : ${score}</p>
+        <p>Record : ${bestScore}</p>
+        <button id="restartBtn">🔄 Rejouer</button>
+    `;
+
+    message.classList.remove("hidden");
+
+    document.getElementById("restartBtn").onclick = startGame;
+}
+
+document.addEventListener("keydown", function(event) {
+
+    if (event.key === "ArrowLeft") {
+        moveLeft();
+    }
+
+    if (event.key === "ArrowRight") {
+        moveRight();
+    }
+});
+
+leftBtn.addEventListener("click", moveLeft);
+rightBtn.addEventListener("click", moveRight);
+
+startBtn.addEventListener("click", startGame);
+
+</script>
+
+</body>
+</html>

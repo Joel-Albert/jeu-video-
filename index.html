@@ -1,389 +1,532 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Évite les obstacles</title>
-
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Zouma</title>
 <style>
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
+  html, body {
+    margin: 0; height: 100%; background: #07170f; overflow: hidden;
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    font-family: "Trebuchet MS", "Segoe UI", sans-serif; color: #f1e8c9;
+  }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 
-body {
-    font-family: Arial, sans-serif;
-    background: linear-gradient(135deg, #0f172a, #1e293b);
-    color: white;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
+  #hud {
+    position: fixed; top: 0; left: 0; right: 0; height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px; pointer-events: none; box-sizing: border-box;
+  }
+  #hud .score { font-size: 26px; font-weight: 700; letter-spacing: .5px; }
+  #hud .score small { font-size: 13px; font-weight: 400; opacity: .7; margin-left: 4px; }
+  #hud #lv { font-size: 17px; opacity: .9; }
+  #snd {
+    pointer-events: auto; font: inherit; font-size: 13px; color: #f1e8c9;
+    background: rgba(0,0,0,.35); border: 1px solid rgba(232,185,60,.5);
+    border-radius: 999px; padding: 7px 12px;
+  }
 
-.game-container {
-    width: 95%;
-    max-width: 500px;
-    text-align: center;
-}
-
-h1 {
-    color: #38bdf8;
-    margin-bottom: 10px;
-    font-size: 30px;
-}
-
-.info {
-    display: flex;
-    justify-content: space-between;
-    background: #111827;
-    padding: 12px 18px;
-    border-radius: 12px 12px 0 0;
-    font-size: 18px;
-    font-weight: bold;
-}
-
-#game {
-    position: relative;
-    width: 100%;
-    height: 500px;
-    background:
-        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
-        #020617;
-    background-size: 40px 40px;
-    border: 3px solid #38bdf8;
-    border-top: none;
-    overflow: hidden;
-    border-radius: 0 0 12px 12px;
-}
-
-#player {
-    position: absolute;
-    width: 45px;
-    height: 45px;
-    background: #38bdf8;
-    border-radius: 10px;
-    bottom: 20px;
-    left: calc(50% - 22px);
-    box-shadow: 0 0 20px #38bdf8;
-}
-
-.obstacle {
-    position: absolute;
-    width: 45px;
-    height: 45px;
-    background: #ef4444;
-    border-radius: 8px;
-    box-shadow: 0 0 15px #ef4444;
-}
-
-button {
-    margin-top: 15px;
-    padding: 13px 30px;
-    border: none;
-    border-radius: 10px;
-    background: #22c55e;
-    color: white;
-    font-size: 18px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #16a34a;
-}
-
-.controls {
-    display: flex;
-    justify-content: center;
-    gap: 25px;
-    margin-top: 15px;
-}
-
-.control-btn {
-    width: 70px;
-    height: 55px;
-    margin: 0;
-    background: #334155;
-    font-size: 25px;
-    border: 2px solid #64748b;
-}
-
-.control-btn:active {
-    background: #475569;
-    transform: scale(0.95);
-}
-
-#message {
-    position: absolute;
-    inset: 0;
-    background: rgba(2, 6, 23, 0.88);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 10;
-}
-
-#message h2 {
-    color: #38bdf8;
-    font-size: 32px;
-    margin-bottom: 10px;
-}
-
-#message p {
-    margin-bottom: 10px;
-    font-size: 18px;
-}
-
-.hidden {
-    display: none !important;
-}
-
-.instructions {
-    margin-top: 15px;
-    color: #cbd5e1;
-    font-size: 14px;
-}
-
-@media (max-width: 450px) {
-    #game {
-        height: 450px;
-    }
-
-    h1 {
-        font-size: 25px;
-    }
-}
+  #ov {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(4, 14, 9, .62); padding: 20px; box-sizing: border-box;
+  }
+  .card {
+    max-width: 360px; width: 100%; text-align: center; padding: 28px 22px 24px;
+    background: rgba(14, 38, 28, .92); border: 2px solid #b8942f; border-radius: 22px;
+    box-shadow: 0 0 0 5px rgba(184,148,47,.18), 0 20px 50px rgba(0,0,0,.5);
+  }
+  .card h1 {
+    margin: 0 0 10px; font-family: Georgia, "Times New Roman", serif; font-size: 58px; line-height: 1;
+    background: linear-gradient(#ffe9a0, #d99a1c); -webkit-background-clip: text; background-clip: text;
+    color: transparent; -webkit-text-fill-color: transparent; text-shadow: none;
+  }
+  .card p { margin: 8px 0; font-size: 16px; line-height: 1.45; }
+  .card p.hint { font-size: 14px; opacity: .75; }
+  .card button {
+    margin-top: 16px; font: inherit; font-size: 20px; font-weight: 700; color: #2a1c05;
+    background: linear-gradient(#ffd966, #e0a21b); border: 0; border-radius: 999px;
+    padding: 13px 38px; box-shadow: 0 4px 0 #8a6210;
+  }
+  .card button:active { transform: translateY(3px); box-shadow: 0 1px 0 #8a6210; }
 </style>
 </head>
-
 <body>
+<canvas id="c"></canvas>
 
-<div class="game-container">
+<div id="hud">
+  <div class="score"><span id="sc">0</span><small>points</small></div>
+  <div id="lv">Niveau 1</div>
+  <button id="snd" type="button">Son : oui</button>
+</div>
 
-    <h1>🎮 ÉVITE LES OBSTACLES</h1>
-
-    <div class="info">
-        <span>Score : <span id="score">0</span></span>
-        <span>Record : <span id="best">0</span></span>
-    </div>
-
-    <div id="game">
-
-        <div id="player"></div>
-
-        <div id="message">
-            <h2>Évite les obstacles !</h2>
-            <p>Déplace le joueur bleu et évite les blocs rouges.</p>
-            <button id="startBtn">▶ Jouer</button>
-        </div>
-
-    </div>
-
-    <div class="controls">
-        <button class="control-btn" id="leftBtn">⬅</button>
-        <button class="control-btn" id="rightBtn">➡</button>
-    </div>
-
-    <p class="instructions">
-        Utilise les boutons ou les touches ⬅️ ➡️ du clavier.
-    </p>
-
+<div id="ov">
+  <div class="card">
+    <h1 id="ot">Zouma</h1>
+    <p id="ob"></p>
+    <p id="oh" class="hint"></p>
+    <button id="obtn" type="button">Jouer</button>
+  </div>
 </div>
 
 <script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const cv = $('c'), ctx = cv.getContext('2d');
 
-const game = document.getElementById("game");
-const player = document.getElementById("player");
-const scoreText = document.getElementById("score");
-const bestText = document.getElementById("best");
-const message = document.getElementById("message");
-const startBtn = document.getElementById("startBtn");
-const leftBtn = document.getElementById("leftBtn");
-const rightBtn = document.getElementById("rightBtn");
+  // Billes : couleur claire / moyenne / sombre
+  const COLORS = [
+    { l: '#ff9a9a', m: '#e0243b', d: '#78101f' }, // rubis
+    { l: '#ffe496', m: '#f2a900', d: '#8a5a00' }, // ambre
+    { l: '#92f5b4', m: '#1fb35c', d: '#0c5a2e' }, // émeraude
+    { l: '#a3c8ff', m: '#2f6fe0', d: '#14357a' }, // saphir
+    { l: '#dcaeff', m: '#9448d6', d: '#4a1f72' }, // améthyste
+    { l: '#a6f4f1', m: '#14b8bd', d: '#0a5f63' }  // aigue-marine
+  ];
 
-let playerX;
-let score = 0;
-let bestScore = localStorage.getItem("bestScore") || 0;
-let gameRunning = false;
-let obstacles = [];
-let gameLoop;
-let obstacleTimer;
-let speed = 4;
+  const TURNS = 2, HUD_H = 56;
+  let W, H, DPR, cx, cy, M, R = 0, D, RMAX, RMIN;
+  let pts = [], L = 0, pathShape = null, leaves = [];
 
-bestText.textContent = bestScore;
+  let state = 'menu';            // menu | play | lost | won
+  let level = 1, score = 0, best = 0, combo = 0;
+  let chain = [], shots = [], parts = [], texts = [];
+  let toSpawn = 0, lvlColors = 4, spd = 20;
+  let aim = -Math.PI / 2, cur = 0, nxt = 1, cool = 0, recoil = 0, time = 0, lostT = 0;
+  let ovShown = true, onBtn = null, sound = true;
 
-function startGame() {
+  try { best = +localStorage.getItem('zouma-best') || 0; } catch (e) {}
 
-    gameRunning = true;
-    score = 0;
-    speed = 4;
-    obstacles = [];
+  /* ---------- Son ---------- */
+  let AC = null;
+  function unlock() {
+    if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (AC && AC.state === 'suspended') AC.resume();
+  }
+  function beep(f, dur, type, vol, slide) {
+    if (!sound || !AC) return;
+    const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(f, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, f + slide), t + dur);
+    g.gain.setValueAtTime(vol || 0.07, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(AC.destination);
+    o.start(t); o.stop(t + dur);
+  }
+  $('snd').addEventListener('click', () => {
+    sound = !sound;
+    $('snd').textContent = 'Son : ' + (sound ? 'oui' : 'non');
+    unlock();
+  });
 
-    scoreText.textContent = score;
-
-    message.classList.add("hidden");
-
-    playerX = game.clientWidth / 2 - 22;
-
-    player.style.left = playerX + "px";
-
-    document.querySelectorAll(".obstacle").forEach(o => o.remove());
-
-    clearInterval(obstacleTimer);
-    cancelAnimationFrame(gameLoop);
-
-    obstacleTimer = setInterval(createObstacle, 850);
-
-    gameLoop = requestAnimationFrame(updateGame);
-}
-
-function createObstacle() {
-
-    if (!gameRunning) return;
-
-    const obstacle = document.createElement("div");
-
-    obstacle.classList.add("obstacle");
-
-    const maxX = game.clientWidth - 45;
-
-    obstacle.style.left = Math.random() * maxX + "px";
-    obstacle.style.top = "-50px";
-
-    game.appendChild(obstacle);
-
-    obstacles.push({
-        element: obstacle,
-        y: -50
+  /* ---------- Chemin en spirale ---------- */
+  function buildPath() {
+    const raw = [];
+    const sx = cx, sy = cy - RMAX;
+    for (let x = -40; x < sx; x += 2) raw.push({ x, y: sy });
+    const N = 900;
+    for (let i = 0; i <= N; i++) {
+      const t = i / N;
+      const th = -Math.PI / 2 + t * TURNS * 2 * Math.PI;
+      const r = RMAX - (RMAX - RMIN) * t;
+      raw.push({ x: cx + r * Math.cos(th), y: cy + r * Math.sin(th) });
+    }
+    // rééchantillonnage tous les 1 px
+    pts = [{ x: raw[0].x, y: raw[0].y }];
+    let prev = raw[0], need = 1;
+    for (let i = 1; i < raw.length; i++) {
+      let a = prev; const b = raw[i];
+      let dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
+      while (d >= need) {
+        const t = need / d;
+        a = { x: a.x + dx * t, y: a.y + dy * t };
+        pts.push(a);
+        dx = b.x - a.x; dy = b.y - a.y; d = Math.hypot(dx, dy);
+        need = 1;
+      }
+      need -= d;
+      prev = b;
+    }
+    L = pts.length - 2;
+    pathShape = new Path2D();
+    pts.forEach((p, i) => {
+      if (i === 0) pathShape.moveTo(p.x, p.y);
+      else if (i % 3 === 0 || i === pts.length - 1) pathShape.lineTo(p.x, p.y);
     });
-}
+  }
+  function pos(s) {
+    if (s <= 0) return { x: pts[0].x + s, y: pts[0].y };
+    if (s >= L) return { x: pts[L].x, y: pts[L].y };
+    const i = Math.floor(s), f = s - i, a = pts[i], b = pts[i + 1];
+    return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+  }
+  function dirAt(s) {
+    const a = pos(s - 4), b = pos(s + 4);
+    const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
+    return { x: dx / d, y: dy / d };
+  }
 
-function updateGame() {
+  /* ---------- Mise en page ---------- */
+  function layout() {
+    const oldR = R;
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    M = Math.min(W, H - HUD_H);
+    cx = W / 2; cy = HUD_H + (H - HUD_H) / 2;
+    R = Math.max(10, Math.min(24, M * 0.04)); D = 2 * R;
+    RMAX = M * 0.45; RMIN = M * 0.2;
+    if (oldR) {
+      const k = R / oldR;
+      chain.forEach(b => { b.s *= k; b.ds *= k; });
+      shots = [];
+    }
+    buildPath();
+    leaves = [];
+    let seed = 7;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 18; i++) {
+      leaves.push({ x: rnd() * W, y: rnd() * H, a: rnd() * 6.28, w: 40 + rnd() * 90, h: 12 + rnd() * 22, o: 0.05 + rnd() * 0.08 });
+    }
+    if (state === 'menu') demoChain();
+  }
 
-    if (!gameRunning) return;
+  /* ---------- Billes ---------- */
+  function newBall(s, col) { return { s, ds: s, col, gapAhead: false, ox: 0, oy: 0 }; }
 
-    for (let i = obstacles.length - 1; i >= 0; i--) {
+  function demoChain() {
+    chain = [];
+    let last = -1, run = 0;
+    for (let i = 0; i < 28; i++) {
+      let c = Math.floor(Math.random() * 4);
+      if (c === last && run >= 2) c = (c + 1) % 4;
+      run = c === last ? run + 1 : 1; last = c;
+      chain.push(newBall(L * 0.5 - i * D, c));
+    }
+  }
 
-        const obstacle = obstacles[i];
+  function presentColors() {
+    return [...new Set(chain.map(b => b.col))];
+  }
+  function pickColor() {
+    const pr = presentColors();
+    if (!pr.length || (toSpawn > 0 && Math.random() < 0.15)) return Math.floor(Math.random() * lvlColors);
+    return pr[Math.floor(Math.random() * pr.length)];
+  }
+  function refreshColors() {
+    const pr = presentColors();
+    if (!pr.length) return;
+    if (!pr.includes(cur)) cur = pickColor();
+    if (!pr.includes(nxt)) nxt = pickColor();
+  }
+  function pickSpawnColor() {
+    let c = Math.floor(Math.random() * lvlColors);
+    const n = chain.length;
+    for (let t = 0; t < 6 && n >= 2 && chain[n - 1].col === c && chain[n - 2].col === c; t++) {
+      c = Math.floor(Math.random() * lvlColors);
+    }
+    return c;
+  }
 
-        obstacle.y += speed;
+  /* ---------- Niveaux ---------- */
+  function startLevel() {
+    chain = []; shots = []; parts = []; texts = [];
+    toSpawn = Math.min(22 + level * 6, 72);
+    lvlColors = Math.min(3 + level, 6);
+    spd = Math.min(R * (1.3 + 0.15 * (level - 1)), R * 3);
+    combo = 0; cool = 0; lostT = 0;
+    state = 'play';
+    cur = Math.floor(Math.random() * lvlColors);
+    nxt = Math.floor(Math.random() * lvlColors);
+    updateHud();
+  }
+  function newGame() { level = 1; score = 0; startLevel(); }
 
-        obstacle.element.style.top = obstacle.y + "px";
+  function updateHud() {
+    $('sc').textContent = score;
+    $('lv').textContent = 'Niveau ' + level;
+  }
+  function saveBest() {
+    if (score > best) {
+      best = score;
+      try { localStorage.setItem('zouma-best', String(best)); } catch (e) {}
+    }
+  }
 
-        if (collision(player, obstacle.element)) {
-            endGame();
-            return;
+  function showOv(t, b, h, btn, fn) {
+    $('ot').textContent = t; $('ob').textContent = b; $('oh').textContent = h || '';
+    $('obtn').textContent = btn;
+    $('ov').style.display = 'flex';
+    ovShown = true; onBtn = fn;
+  }
+  $('obtn').addEventListener('click', () => {
+    unlock();
+    $('ov').style.display = 'none';
+    ovShown = false;
+    if (onBtn) onBtn();
+  });
+
+  function showMenu() {
+    state = 'menu';
+    demoChain();
+    showOv('Zouma',
+      'Tire des billes avec la grenouille. Forme des groupes de 3 billes ou plus de la même couleur avant qu\u2019elles n\u2019atteignent le trou doré.',
+      'Touche l\u2019écran pour viser et tirer. Touche la grenouille pour échanger ses billes.' + (best ? '  Meilleur score : ' + best : ''),
+      'Jouer', newGame);
+  }
+
+  /* ---------- Combinaisons ---------- */
+  function runAt(idx) {
+    const c = chain[idx].col;
+    let l = idx, r = idx;
+    while (l > 0 && chain[l - 1].col === c && chain[l - 1].s - chain[l].s - D < 2.5) l--;
+    while (r < chain.length - 1 && chain[r + 1].col === c && chain[r].s - chain[r + 1].s - D < 2.5) r++;
+    return [l, r];
+  }
+  function checkMatch(idx, reaction) {
+    const [l, r] = runAt(idx);
+    const n = r - l + 1;
+    if (n < 3) return false;
+    combo = reaction ? combo + 1 : 1;
+    const gain = n * 10 * combo + (n - 3) * 15;
+    score += gain;
+    const mid = pos(chain[Math.floor((l + r) / 2)].ds);
+    texts.push({ x: mid.x, y: mid.y, t: '+' + gain + (combo > 1 ? '  x' + combo : ''), life: 1.1 });
+    popRange(l, r);
+    beep(330 + combo * 70, 0.16, 'sine', 0.09, 260);
+    updateHud();
+    return true;
+  }
+  function popRange(l, r) {
+    for (let k = l; k <= r; k++) {
+      const b = chain[k], p = pos(b.ds);
+      for (let i = 0; i < 7; i++) {
+        const a = Math.random() * 6.283, v = 60 + Math.random() * 160;
+        parts.push({ x: p.x, y: p.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, life: 0.6 + Math.random() * 0.4, max: 1, col: b.col, r: R * (0.12 + Math.random() * 0.2) });
+      }
+    }
+    chain.splice(l, r - l + 1);
+    if (l > 0 && l < chain.length) chain[l].gapAhead = true;
+    refreshColors();
+  }
+
+  /* ---------- Tir ---------- */
+  function fire() {
+    if (state !== 'play' || cool > 0) return;
+    const mz = R * 2.9;
+    const sp = M * 2.6;
+    shots.push({ x: cx + Math.cos(aim) * mz, y: cy + Math.sin(aim) * mz, vx: Math.cos(aim) * sp, vy: Math.sin(aim) * sp, col: cur });
+    cur = nxt; nxt = pickColor();
+    cool = 0.17; recoil = 1;
+    beep(540, 0.09, 'triangle', 0.07, -280);
+  }
+  function swap() {
+    if (state !== 'play') return;
+    const t = cur; cur = nxt; nxt = t;
+    beep(420, 0.05, 'triangle', 0.05, 120);
+  }
+
+  function insertShot(sh, hit) {
+    const b = chain[hit], bp = pos(b.ds), t = dirAt(b.ds);
+    const ahead = (sh.x - bp.x) * t.x + (sh.y - bp.y) * t.y > 0;
+    const k = ahead ? hit : hit + 1;
+    const nb = newBall(0, sh.col);
+    nb.s = k >= chain.length ? chain[chain.length - 1].s - D : chain[k].s + D;
+    nb.ds = nb.s;
+    const np = pos(nb.s);
+    nb.ox = sh.x - np.x; nb.oy = sh.y - np.y;
+    chain.splice(k, 0, nb);
+    for (let j = k - 1; j >= 0; j--) {
+      const need = chain[j + 1].s + D;
+      if (chain[j].s < need) chain[j].s = need; else break;
+    }
+    combo = 0;
+    if (!checkMatch(k, false)) beep(190, 0.07, 'square', 0.04, -60);
+  }
+
+  /* ---------- Mise à jour ---------- */
+  function stepChain(dt) {
+    const n = chain.length;
+    if (!n) return;
+    let gap = false;
+    for (let i = 1; i < n; i++) {
+      const g = chain[i - 1].s - chain[i].s - D;
+      if (g > 0.5) { chain[i].gapAhead = true; gap = true; }
+    }
+    if (gap) {
+      // les groupes derrière un trou rattrapent celui de devant
+      const catchSp = R * 18;
+      let i = 1;
+      while (i < n) {
+        const g = chain[i - 1].s - chain[i].s - D;
+        if (g > 0.5) {
+          let j = i;
+          while (j + 1 < n && chain[j].s - chain[j + 1].s - D <= 0.5) j++;
+          const mv = Math.min(catchSp * dt, g);
+          for (let k = i; k <= j; k++) chain[k].s += mv;
+          i = j + 1;
+        } else i++;
+      }
+    } else {
+      let sp = spd;
+      if (chain[0].s < L * 0.1) sp = Math.max(sp, R * 8);
+      chain[n - 1].s += sp * dt;
+      for (let i = n - 2; i >= 0; i--) {
+        const need = chain[i + 1].s + D;
+        if (chain[i].s < need) chain[i].s = need;
+      }
+    }
+    // un trou vient de se refermer : réaction en chaîne possible
+    for (let i = 1; i < chain.length; i++) {
+      const b = chain[i];
+      const g = chain[i - 1].s - b.s - D;
+      if (g <= 0.5 && b.gapAhead) {
+        b.gapAhead = false;
+        if (chain[i - 1].col === b.col && checkMatch(i, true)) break;
+      }
+    }
+  }
+
+  function update(dt) {
+    time += dt;
+    cool = Math.max(0, cool - dt);
+    recoil = Math.max(0, recoil - dt * 6);
+
+    if (state === 'play') {
+      // apparition des billes
+      if (toSpawn > 0) {
+        const tail = chain[chain.length - 1];
+        if (!tail || tail.s >= D) {
+          let s = tail ? tail.s - D : 0;
+          if (s > 8) s = 0;
+          chain.push(newBall(s, pickSpawnColor()));
+          toSpawn--;
         }
+      }
+      stepChain(dt);
 
-        if (obstacle.y > game.clientHeight) {
-
-            obstacle.element.remove();
-
-            obstacles.splice(i, 1);
-
-            score++;
-
-            scoreText.textContent = score;
-
-            if (score % 10 === 0) {
-                speed += 0.5;
-            }
+      // projectiles
+      for (let i = shots.length - 1; i >= 0; i--) {
+        const sh = shots[i];
+        const dist = Math.hypot(sh.vx, sh.vy) * dt;
+        const steps = Math.max(1, Math.ceil(dist / (R * 0.8)));
+        let hit = -1;
+        for (let st = 0; st < steps && hit < 0; st++) {
+          sh.x += sh.vx * dt / steps; sh.y += sh.vy * dt / steps;
+          let bd = R * 1.85;
+          for (let j = 0; j < chain.length; j++) {
+            const p = pos(chain[j].ds);
+            const d = Math.hypot(sh.x - p.x, sh.y - p.y);
+            if (d < bd) { bd = d; hit = j; }
+          }
         }
+        if (hit >= 0) { insertShot(sh, hit); shots.splice(i, 1); continue; }
+        if (sh.x < -60 || sh.x > W + 60 || sh.y < -60 || sh.y > H + 60) shots.splice(i, 1);
+      }
+
+      // fin de niveau ?
+      if (chain.length && chain[0].s >= L - 2) {
+        state = 'lost'; lostT = 0; shots = [];
+        beep(300, 0.7, 'sawtooth', 0.08, -240);
+      } else if (toSpawn === 0 && chain.length === 0) {
+        state = 'won';
+        saveBest();
+        [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, 0.22, 'triangle', 0.08), i * 120));
+        const lv = level;
+        setTimeout(() => showOv('Niveau ' + lv + ' terminé',
+          'Score : ' + score, 'Le niveau suivant est plus rapide et compte plus de couleurs.',
+          'Niveau suivant', () => { level = lv + 1; startLevel(); }), 700);
+      }
+    } else if (state === 'lost') {
+      lostT += dt;
+      const hp = pos(L);
+      for (const b of chain) b.s += R * 45 * dt;
+      for (let i = chain.length - 1; i >= 0; i--) {
+        if (chain[i].s >= L) {
+          for (let k = 0; k < 4; k++) {
+            const a = Math.random() * 6.283, v = 80 + Math.random() * 140;
+            parts.push({ x: hp.x, y: hp.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.5, max: 1, col: chain[i].col, r: R * 0.25 });
+          }
+          chain.splice(i, 1);
+        }
+      }
+      if (lostT > 1.5 && !ovShown) {
+        saveBest();
+        showOv('Perdu', 'Score : ' + score + (best ? '  \u2022  Meilleur : ' + best : ''),
+          'Les billes ont atteint le trou. Vise les groupes de même couleur près de l\u2019entrée pour gagner du temps.',
+          'Rejouer', newGame);
+      }
     }
 
-    gameLoop = requestAnimationFrame(updateGame);
-}
-
-function collision(a, b) {
-
-    const rect1 = a.getBoundingClientRect();
-    const rect2 = b.getBoundingClientRect();
-
-    return !(
-        rect1.right < rect2.left ||
-        rect1.left > rect2.right ||
-        rect1.bottom < rect2.top ||
-        rect1.top > rect2.bottom
-    );
-}
-
-function moveLeft() {
-
-    if (!gameRunning) return;
-
-    playerX -= 30;
-
-    if (playerX < 0) {
-        playerX = 0;
+    // lissage visuel des billes
+    const k = 1 - Math.exp(-dt * 22), kd = Math.exp(-dt * 12);
+    for (const b of chain) {
+      if (state === 'lost') b.ds = b.s; else b.ds += (b.s - b.ds) * k;
+      b.ox *= kd; b.oy *= kd;
     }
-
-    player.style.left = playerX + "px";
-}
-
-function moveRight() {
-
-    if (!gameRunning) return;
-
-    playerX += 30;
-
-    const maxX = game.clientWidth - player.offsetWidth;
-
-    if (playerX > maxX) {
-        playerX = maxX;
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 380 * dt;
+      if (p.life <= 0) parts.splice(i, 1);
     }
-
-    player.style.left = playerX + "px";
-}
-
-function endGame() {
-
-    gameRunning = false;
-
-    clearInterval(obstacleTimer);
-    cancelAnimationFrame(gameLoop);
-
-    if (score > bestScore) {
-
-        bestScore = score;
-
-        localStorage.setItem("bestScore", bestScore);
-
-        bestText.textContent = bestScore;
+    for (let i = texts.length - 1; i >= 0; i--) {
+      const t = texts[i];
+      t.life -= dt; t.y -= 28 * dt;
+      if (t.life <= 0) texts.splice(i, 1);
     }
+  }
 
-    message.innerHTML = `
-        <h2>💥 GAME OVER</h2>
-        <p>Ton score : ${score}</p>
-        <p>Record : ${bestScore}</p>
-        <button id="restartBtn">🔄 Rejouer</button>
-    `;
+  /* ---------- Dessin ---------- */
+  function drawBall(x, y, r, col, alpha) {
+    const c = COLORS[col];
+    ctx.save();
+    if (alpha !== undefined) ctx.globalAlpha = alpha;
+    const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
+    g.addColorStop(0, c.l); g.addColorStop(0.55, c.m); g.addColorStop(1, c.d);
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.fill();
+    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.stroke();
 
-    message.classList.remove("hidden");
-
-    document.getElementById("restartBtn").onclick = startGame;
-}
-
-document.addEventListener("keydown", function(event) {
-
-    if (event.key === "ArrowLeft") {
-        moveLeft();
+    // petit symbole : aide à distinguer les couleurs
+    const k = r * 0.3;
+    ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = Math.max(1.5, r * 0.1);
+    ctx.beginPath();
+    switch (col) {
+      case 0: ctx.arc(x + r * 0.08, y + r * 0.15, k * 0.8, 0, 6.2832); ctx.fill(); break;
+      case 1: ctx.moveTo(x, y + r * 0.15 - k); ctx.lineTo(x + k, y + r * 0.15); ctx.lineTo(x, y + r * 0.15 + k); ctx.lineTo(x - k, y + r * 0.15); ctx.closePath(); ctx.fill(); break;
+      case 2: ctx.moveTo(x, y + r * 0.15 - k); ctx.lineTo(x + k, y + r * 0.15 + k * 0.8); ctx.lineTo(x - k, y + r * 0.15 + k * 0.8); ctx.closePath(); ctx.fill(); break;
+      case 3: ctx.rect(x - k * 0.8, y + r * 0.15 - k * 0.8, k * 1.6, k * 1.6); ctx.fill(); break;
+      case 4: ctx.moveTo(x - k, y + r * 0.15); ctx.lineTo(x + k, y + r * 0.15); ctx.moveTo(x, y + r * 0.15 - k); ctx.lineTo(x, y + r * 0.15 + k); ctx.stroke(); break;
+      default: ctx.arc(x, y + r * 0.15, k * 0.85, 0, 6.2832); ctx.stroke();
     }
+    ctx.fillStyle = 'rgba(255,255,255,.55)';
+    ctx.beginPath(); ctx.ellipse(x - r * 0.35, y - r * 0.45, r * 0.28, r * 0.16, -0.6, 0, 6.2832); ctx.fill();
+    ctx.restore();
+  }
 
-    if (event.key === "ArrowRight") {
-        moveRight();
-    }
-});
+  function ell(x, y, rx, ry, rot, fill, stroke) {
+    ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot || 0, 0, 6.2832);
+    ctx.fillStyle = fill; ctx.fill();
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 3; ctx.stroke(); }
+  }
 
-leftBtn.addEventListener("click", moveLeft);
-rightBtn.addEventListener("click", moveRight);
+  function drawFrog() {
+    ctx.save();
+    ctx.translate(cx, cy);
+    // socle de pierre
+    const pr = R * 3.7;
+    const g = ctx.createRadialGradient(0, 0, pr * 0.2, 0, 0, pr);
+    g.addColorStop(0, '#6e5f3a'); g.addColorStop(1, '#352d1c');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, pr, 0, 6.2832); ctx.fill();
+    ctx.strokeStyle = '#b8942f'; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.strokeStyle = 'rgba(184,148,47,.35)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0, 0, pr * 0.82, 0, 6.2832); ctx.stroke();
 
-startBtn.addEventListener("click", startGame);
+    ctx.rotate(aim + Math.PI / 2);
+    const u = R / 16;
+    ctx.scale(u, u);
+    ctx.translate(0, recoil * 5);
 
-</script>
-
-</body>
-</html>
+    const body = '#5fae3a', dark = '#2f6b1c', belly = '#a9db74'

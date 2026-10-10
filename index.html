@@ -1,12 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vers mon abri beau 💕</title>
-
-<!-- ============ CSS ============ -->
 <style>
 :root { --rose:#ff7aa2; --creme:#fff4f0; }
 * { box-sizing:border-box; margin:0; padding:0; }
@@ -23,7 +20,7 @@ canvas { display:block; width:100%; height:auto; background:#1d1033; }
 .overlay {
   position:absolute; inset:0; display:flex; flex-direction:column;
   justify-content:center; align-items:center; gap:14px; padding:24px;
-  background:rgba(42,23,64,.82); backdrop-filter:blur(3px);
+  background:rgba(42,23,64,.85); backdrop-filter:blur(3px);
 }
 .overlay.hidden { display:none; }
 .overlay h2 { font-size:clamp(1.4rem,4vw,2.2rem); color:#ffd1e0; }
@@ -38,8 +35,6 @@ button:hover { transform:scale(1.07); }
 @keyframes pulse { 50% { transform:scale(1.08); } }
 </style>
 </head>
-
-<!-- ============ HTML ============ -->
 <body>
 <main>
   <h1>Vers ton abri beau 💕</h1>
@@ -54,13 +49,10 @@ button:hover { transform:scale(1.07); }
     </div>
   </div>
 
-  <p class="hud">Niveau <span id="lvl"><?= (int)$niveauSauve ?></span> / 3 &nbsp;·&nbsp; ESPACE = sauter</p>
+  <p class="hud">Niveau <span id="lvl">1</span> / 5 &nbsp;·&nbsp; ESPACE = sauter</p>
 </main>
 
-<!-- ============ JavaScript (le « java » du navigateur) ============ -->
 <script>
-const NIVEAU_DEPART = <?= (int)$niveauSauve ?>;
-
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height, GROUND = 330;
@@ -71,22 +63,29 @@ const ovText  = document.getElementById('ov-text');
 const ovBtn   = document.getElementById('ov-btn');
 const lvlEl   = document.getElementById('lvl');
 
+// ---------- 5 niveaux ----------
 const LEVELS = [
-  { length: 2500, speed: 4.0, gap: [420, 620] },
-  { length: 3500, speed: 5.0, gap: [360, 520] },
-  { length: 4500, speed: 6.0, gap: [330, 470] },
-];
-const FALLBACK = [
-  "La distance n'est qu'un chiffre quand mon cœur sait où il va. 💗",
-  "Le doute s'efface chaque fois que je pense à toi. 🌙",
-  "Tu étais mon homme",
+  { length: 2000, speed: 3.8, gap: [440, 640] },
+  { length: 2800, speed: 4.4, gap: [400, 580] },
+  { length: 3600, speed: 5.0, gap: [360, 520] },
+  { length: 4400, speed: 5.6, gap: [340, 480] },
+  { length: 5200, speed: 6.2, gap: [320, 450] },
 ];
 
-let level = Math.min(3, Math.max(1, NIVEAU_DEPART)) - 1;
+// ---------- Mots d'amour (modifie-les comme tu veux) ----------
+const MOTS = [
+  "La distance n'est qu'un chiffre quand mon cœur sait où il va. 💗",
+  "Chaque pas vers toi me rend plus fort. 🌹",
+  "Le doute s'efface chaque fois que je pense à toi. 🌙",
+  "Même loin, tu es la plus belle chose qui soit en moi. ✨",
+  "Tu es mon homme à vie",
+];
+
+let level = 0;
 let state = 'menu';
 let progress, speed, obstacles, nextSpawn, house, player, stars, tick = 0;
 
-// ---- Musique douce (Web Audio, aucun fichier requis) ----
+// ---------- Musique douce (aucun fichier nécessaire) ----------
 let audio, musicOn = false;
 function startMusic() {
   if (musicOn) return;
@@ -157,17 +156,11 @@ function fail() {
   show("Ne doute pas… 💔", "Même quand c'est dur, on recommence ensemble.", "Réessayer");
 }
 
-async function levelDone() {
+function levelDone() {
   state = 'win';
-  let msg = FALLBACK[level];
-  try {
-    const r = await fetch('?api=1&level=' + (level + 1));
-    const d = await r.json(); if (d.message) msg = d.message;
-    if (level < 2) fetch('?api=1&save=' + (level + 2));
-  } catch (e) {}
-
-  if (level === 2) {
-    show(msg + " 💕", "Tu es arrivé dans mon abri beau.", "Rejouer");
+  const msg = MOTS[level];
+  if (level === LEVELS.length - 1) {
+    show(msg + " 💖", "Tu es arrivé dans mon abri beau.", "Rejouer");
     overlay.classList.add('final');
     level = 0;
   } else {
@@ -209,7 +202,7 @@ function draw() {
   const pct = Math.min(1, progress / LEVELS[level].length);
   ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.fillRect(20,16,200,8);
   ctx.fillStyle = '#ff7aa2'; ctx.fillRect(20,16,200*pct,8);
-  ctx.fillStyle = '#fff'; ctx.font = '12px Georgia'; ctx.textAlign = 'left'; ctx.fillText('🏠',224,25);
+  ctx.font = '12px Georgia'; ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.fillText('🏠',224,25);
 
   ctx.textAlign = 'center';
   obstacles.forEach(o => {

@@ -1,4 +1,26 @@
+<?php
+// ============ PHP : mots d'amour + progression (session) ============
+session_start();
 
+$messages = [
+  1 => "La distance n'est qu'un chiffre quand mon cœur sait où il va. 💗",
+  2 => "Le doute s'efface chaque fois que je pense à toi. 🌙",
+  3 => "Tu étais mon homme",
+];
+
+if (isset($_GET['api'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    if (isset($_GET['save'])) {
+        $_SESSION['niveau'] = max(1, min(3, (int)$_GET['save']));
+        echo json_encode(['ok' => true]);
+    } else {
+        $l = (int)($_GET['level'] ?? 1);
+        echo json_encode(['level' => $l, 'message' => $messages[$l] ?? '']);
+    }
+    exit;
+}
+$niveauSauve = $_SESSION['niveau'] ?? 1;
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
